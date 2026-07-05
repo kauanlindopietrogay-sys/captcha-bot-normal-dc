@@ -22,32 +22,32 @@ const client = new Client({
 });
 
 const TOKEN = process.env.DISCORD_TOKEN;
-const CARGO_ID = "1428549879470362775";
+const ROLE_ID = "1428549879470362775";
 const LOG_CHANNEL_ID = "1523285196873535608";
 
 const captchas = new Map();
 
-// Função central de log — manda embed pro canal configurado
-async function enviarLog(titulo, descricao, cor = 0x5865F2) {
+// Central log function — sends an embed to the configured channel
+async function sendLog(title, description, color = 0x5865F2) {
   try {
-    const canal = await client.channels.fetch(LOG_CHANNEL_ID);
-    if (!canal) return console.error("[LOG] Canal de logs não encontrado.");
+    const channel = await client.channels.fetch(LOG_CHANNEL_ID);
+    if (!channel) return console.error("[LOG] Log channel not found.");
 
     const embed = new EmbedBuilder()
-      .setTitle(titulo)
-      .setDescription(descricao)
-      .setColor(cor)
+      .setTitle(title)
+      .setDescription(description)
+      .setColor(color)
       .setTimestamp();
 
-    await canal.send({ embeds: [embed] });
+    await channel.send({ embeds: [embed] });
   } catch (err) {
-    console.error("[LOG] Falha ao enviar log pro canal:", err);
+    console.error("[LOG] Failed to send log to channel:", err);
   }
 }
 
 client.once("ready", () => {
   console.log(`${client.user.tag} online!`);
-  enviarLog("🟢 Bot iniciado", `${client.user.tag} está online.`);
+  sendLog("🟢 Bot started", `${client.user.tag} is online.`);
 });
 
 client.on("messageCreate", async (message) => {
@@ -59,38 +59,38 @@ client.on("messageCreate", async (message) => {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle("🔐 Verificação")
-      .setDescription("Clique no botão abaixo para iniciar a verificação.");
+      .setTitle("🔐 Verification")
+      .setDescription("Click the button below to start verification.");
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId("verificar")
-        .setLabel("Verificar")
+        .setCustomId("verify")
+        .setLabel("Verify")
         .setStyle(ButtonStyle.Success)
     );
 
     await message.channel.send({ embeds: [embed], components: [row] });
 
-    enviarLog(
-      "📋 Painel criado",
-      `${message.author.tag} ativou o painel de captcha em <#${message.channel.id}>`
+    sendLog(
+      "📋 Panel created",
+      `${message.author.tag} triggered the captcha panel in <#${message.channel.id}>`
     );
   }
 });
 
 client.on("interactionCreate", async (interaction) => {
   try {
-    if (interaction.isButton() && interaction.customId === "verificar") {
-      const codigo = Math.random().toString(36).substring(2, 8).toUpperCase();
-      captchas.set(interaction.user.id, codigo);
+    if (interaction.isButton() && interaction.customId === "verify") {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      captchas.set(interaction.user.id, code);
 
       const modal = new ModalBuilder()
         .setCustomId("captchaModal")
-        .setTitle(`Captcha: ${codigo}`);
+        .setTitle(`Captcha: ${code}`);
 
       const input = new TextInputBuilder()
         .setCustomId("captchaInput")
-        .setLabel("Digite o código acima")
+        .setLabel("Type the code above")
         .setStyle(TextInputStyle.Short)
         .setRequired(true);
 
@@ -98,65 +98,65 @@ client.on("interactionCreate", async (interaction) => {
 
       await interaction.showModal(modal);
 
-      enviarLog(
-        "🎲 Captcha gerado",
-        `${interaction.user.tag} (${interaction.user.id}) iniciou uma verificação.`
+      sendLog(
+        "🎲 Captcha generated",
+        `${interaction.user.tag} (${interaction.user.id}) started a verification.`
       );
     }
 
     if (interaction.isModalSubmit() && interaction.customId === "captchaModal") {
-      const resposta = interaction.fields.getTextInputValue("captchaInput").toUpperCase();
-      const codigo = captchas.get(interaction.user.id);
+      const answer = interaction.fields.getTextInputValue("captchaInput").toUpperCase();
+      const code = captchas.get(interaction.user.id);
 
-      if (!codigo) {
+      if (!code) {
         return interaction.reply({
-          content: "⚠️ Captcha expirado ou não encontrado. Clique em Verificar novamente.",
+          content: "⚠️ Captcha expired or not found. Click Verify again.",
           ephemeral: true
         });
       }
 
-      if (resposta === codigo) {
-        const membro = interaction.guild.members.cache.get(interaction.user.id);
+      if (answer === code) {
+        const member = interaction.guild.members.cache.get(interaction.user.id);
 
         try {
-          await membro.roles.add(CARGO_ID);
+          await member.roles.add(ROLE_ID);
           captchas.delete(interaction.user.id);
 
-          enviarLog(
-            "✅ Verificação concluída",
-            `${interaction.user.tag} (${interaction.user.id}) passou no captcha.`,
+          sendLog(
+            "✅ Verification completed",
+            `${interaction.user.tag} (${interaction.user.id}) passed the captcha.`,
             0x57F287
           );
 
           return interaction.reply({
-            content: "✅ Verificação concluída!",
+            content: "✅ Verification completed!",
             ephemeral: true
           });
         } catch (err) {
-          enviarLog(
-            "🔴 Erro ao dar cargo",
-            `Falha ao dar cargo pra ${interaction.user.tag}: \`${err.message}\``,
+          sendLog(
+            "🔴 Error assigning role",
+            `Failed to assign role to ${interaction.user.tag}: \`${err.message}\``,
             0xED4245
           );
           return interaction.reply({
-            content: "❌ Erro ao aplicar o cargo. Chama um admin.",
+            content: "❌ Error applying the role. Contact an admin.",
             ephemeral: true
           });
         }
       } else {
-        enviarLog(
-          "❌ Captcha incorreto",
-          `${interaction.user.tag} errou o código (digitou: \`${resposta}\`)`,
+        sendLog(
+          "❌ Incorrect captcha",
+          `${interaction.user.tag} entered the wrong code (typed: \`${answer}\`)`,
           0xFEE75C
         );
         return interaction.reply({
-          content: "❌ Código incorreto.",
+          content: "❌ Incorrect code.",
           ephemeral: true
         });
       }
     }
   } catch (err) {
-    console.error("[ERRO GERAL]", err);
+    console.error("[GENERAL ERROR]", err);
   }
 });
 
