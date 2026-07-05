@@ -23,7 +23,7 @@ const client = new Client({
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CARGO_ID = "1428549879470362775";
-const LOG_CHANNEL_ID = "COLOQUE_O_ID_DO_CANAL_AQUI";
+const LOG_CHANNEL_ID = "1523285196873535608";
 
 const captchas = new Map();
 
